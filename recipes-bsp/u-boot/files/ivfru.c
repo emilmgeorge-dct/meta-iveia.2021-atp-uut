@@ -8,6 +8,7 @@
 static int do_ivfru_read(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 
 	if(argc < 3)
@@ -15,10 +16,16 @@ static int do_ivfru_read(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	enum ivfru_board board = ivfru_str2board(argv[1]);
 
-	if(board >= MAX_IVFRU_BOARD)
+	if(board >= MAX_IVFRU_BOARD) {
+		printf("Invalid board: %s\n", argv[1]);
 		return CMD_RET_USAGE;
+	}
 
-	location = (void *)simple_strtoul(argv[2], NULL, 16);
+	location = (void *)simple_strtoul(argv[2], &end, 16);
+	if(end != argv[2] + strlen(argv[2])) {
+		printf("Invalid location: %s\n", argv[2]);
+		return CMD_RET_USAGE;
+	}
 	ivfru_plat_set_buffer(location);
 
 	int err = ivfru_read(board, location, 0);
@@ -31,6 +38,7 @@ static int do_ivfru_read(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_write(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 
 	if(argc < 3)
@@ -38,10 +46,16 @@ static int do_ivfru_write(struct cmd_tbl *cmdtp, int flag, int argc,
 
 	enum ivfru_board board = ivfru_str2board(argv[1]);
 
-	if(board >= MAX_IVFRU_BOARD)
+	if(board >= MAX_IVFRU_BOARD) {
+		printf("Invalid board: %s\n", argv[1]);
 		return CMD_RET_USAGE;
+	}
 
-	location = (void *)simple_strtoul(argv[2], NULL, 16);
+	location = (void *)simple_strtoul(argv[2], &end, 16);
+	if(end != argv[2] + strlen(argv[2])) {
+		printf("Invalid location: %s\n", argv[2]);
+		return CMD_RET_USAGE;
+	}
 	ivfru_plat_set_buffer(location);
 
 	int err = ivfru_write(board, location);
@@ -54,12 +68,17 @@ static int do_ivfru_write(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_display(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 
 	if(argc < 2)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
 	ivfru_plat_set_buffer(location);
 
 	ivfru_display(location);
@@ -70,12 +89,17 @@ static int do_ivfru_display(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_fix(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 
 	if(argc < 2)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
 	ivfru_plat_set_buffer(location);
 
 	ivfru_fix(location);
@@ -86,6 +110,7 @@ static int do_ivfru_fix(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_create(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 	char *mfgdate;
 	char *product;
@@ -96,7 +121,11 @@ static int do_ivfru_create(struct cmd_tbl *cmdtp, int flag, int argc,
 	if(argc < 6)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
 	ivfru_plat_set_buffer(location);
 	mfgdate = argv[2];
 	product = argv[3];
@@ -121,6 +150,7 @@ static int do_ivfru_create(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_xcreate(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 	char *mfgdate;
 	char *product;
@@ -135,18 +165,39 @@ static int do_ivfru_xcreate(struct cmd_tbl *cmdtp, int flag, int argc,
 	if(argc < 9 || argc == 10)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
+	ivfru_plat_set_buffer(location);
 	mfgdate = argv[2];
 	product = argv[3];
-	product_len = simple_strtol(argv[4], NULL, 10);
+	product_len = simple_strtol(argv[4], &end, 10);
+	if(end != argv[4] + strlen(argv[4])) {
+		printf("Invalid productlen: %s\n", argv[4]);
+		return CMD_RET_USAGE;
+	}
 	sn = argv[5];
-	sn_len = simple_strtol(argv[6], NULL, 10);
+	sn_len = simple_strtol(argv[6], &end, 10);
+	if(end != argv[6] + strlen(argv[6])) {
+		printf("Invalid snlen: %s\n", argv[6]);
+		return CMD_RET_USAGE;
+	}
 	pn = argv[7];
-	pn_len = simple_strtol(argv[8], NULL, 10);
+	pn_len = simple_strtol(argv[8], &end, 10);
+	if(end != argv[8] + strlen(argv[8])) {
+		printf("Invalid pnlen: %s\n", argv[8]);
+		return CMD_RET_USAGE;
+	}
 
 	if(argc > 9) {
 		mfr = argv[9];
-		mfr_len = simple_strtol(argv[10], NULL, 10);
+		mfr_len = simple_strtol(argv[10], &end, 10);
+		if(end != argv[10] + strlen(argv[10])) {
+			printf("Invalid mfrlen: %s\n", argv[10]);
+			return CMD_RET_USAGE;
+		}
 	} else {
 		mfr = NULL;
 		mfr_len = 0;
@@ -166,6 +217,7 @@ static int do_ivfru_xcreate(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_add(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 	int index;
 	int len;
@@ -173,8 +225,17 @@ static int do_ivfru_add(struct cmd_tbl *cmdtp, int flag, int argc,
 	if(argc < 4)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
-	index = simple_strtol(argv[2], NULL, 10);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
+	ivfru_plat_set_buffer(location);
+	index = simple_strtol(argv[2], &end, 10);
+	if(end != argv[2] + strlen(argv[2])) {
+		printf("Invalid index: %s\n", argv[2]);
+		return CMD_RET_USAGE;
+	}
 	len = strlen(argv[3]) / 2;
 	char bytestr[3];
 	bytestr[2] = 0;
@@ -183,7 +244,11 @@ static int do_ivfru_add(struct cmd_tbl *cmdtp, int flag, int argc,
 	for(int i = 0; i < len; i++) {
 		bytestr[0] = argv[3][i * 2];
 		bytestr[1] = argv[3][i * 2 + 1];
-		data[i] = simple_strtoul(bytestr, NULL, 16);
+		data[i] = simple_strtoul(bytestr, &end, 16);
+		if(end != bytestr + 2) {
+			printf("Invalid hex string: %s\n", argv[3]);
+			return CMD_RET_USAGE;
+		}
 	}
 
 	int err = ivfru_add(location, index, data, len);
@@ -199,14 +264,24 @@ static int do_ivfru_add(struct cmd_tbl *cmdtp, int flag, int argc,
 static int do_ivfru_rm(struct cmd_tbl *cmdtp, int flag, int argc,
 		       char *const argv[])
 {
+	char *end;
 	void *location;
 	int index;
 
 	if(argc < 3)
 		return CMD_RET_USAGE;
 
-	location = (void *)simple_strtoul(argv[1], NULL, 16);
-	index = simple_strtol(argv[2], NULL, 10);
+	location = (void *)simple_strtoul(argv[1], &end, 16);
+	if(end != argv[1] + strlen(argv[1])) {
+		printf("Invalid location: %s\n", argv[1]);
+		return CMD_RET_USAGE;
+	}
+	ivfru_plat_set_buffer(location);
+	index = simple_strtol(argv[2], &end, 10);
+	if(end != argv[2] + strlen(argv[2])) {
+		printf("Invalid index: %s\n", argv[2]);
+		return CMD_RET_USAGE;
+	}
 
 	int err = ivfru_rm(location, index);
 
@@ -254,5 +329,42 @@ static int do_ivfru(struct cmd_tbl *cmdtp, int flag, int argc,
 U_BOOT_CMD(
 	ivfru, 12, 1, do_ivfru,
 	"read/write IPMI FRU struct",
-	""
+	"read <board> <location>\n"
+	"  Read FRU image from the given board storage into <location>\n"
+	"ivfru write <board> <location>\n"
+	"  Write FRU image from <location> to the given board storage\n"
+	"ivfru display <location>\n"
+	"  Display a decoded version of the FRU image at <location>\n"
+	"ivfru fix <location>\n"
+	"  Fix invalid FRU offsets\n"
+	"ivfru create <location> <mfgdate> <product> <sn> <pn> [<mfr>]\n"
+	"  Create a new FRU with common header and board area.\n"
+	"  <mfgdate> - Manufacturing date in format DD-MM-YYYY.\n"
+	"  <product> - Product Name field string.  Default field length 15.\n"
+	"  <sn> - Serial Number field string.  Default field length 10.\n"
+	"  <pn> - Part Number field string.  Default field length 16.\n"
+	"  <mfr> - Mfr field string (\"iVeia\" if not given).  Default field length 10.\n"
+	"  If the field string is shorter than the field len, it is space padded at end.\n"
+	"  If the field string is longer than the field len, command exits with error.\n"
+	"ivfru xcreate <location> <mfgdate> <product> <productlen> <sn> <snlen>\n"
+	"      <pn> <pnlen> [<mfr> <mfrlen>]\n"
+	"  Extended form of the ivfru create command that requires specifying the field\n"
+	"  length of each field string.  Each additional argument of this command of the\n"
+	"  form <*len> indicates the integer length of the previous field string.  A\n"
+	"  negative length means \"no fixed size\" (the field length will be exactly the\n"
+	"  length of the given field string).\n"
+	"ivfru add <location> <index> <hex_string>\n"
+	"  Add a custom mfg info field.\n"
+	"  <index> - 0-based index of the field in the board area.  If less than 0 \n"
+	"    or greater than the highest indexed field, add field to end of list.\n"
+	"  <hex_string> - hex string of data in field, e.g. \"1A2B3C\"\n"
+	"ivfru rm <location> <index>\n"
+	"  Remove the custom mfg info field at given 0-based <index>.\n"
+	"\n"
+	"where common fields are:\n"
+	"  <board> is one of mb, io, or bp.\n"
+	"  <location> is a memory address (in U-Boot) or a file (in Linux)\n"
+	"\n"
+	"In U-Boot, all commands (when successful) set the filesize env variable with\n"
+	"the current size of the read/written/modified FRU image at <location>."
 );

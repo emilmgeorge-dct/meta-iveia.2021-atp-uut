@@ -33,11 +33,6 @@ const struct ivfru_common_header CH_OLD = {
  */
 static int fru_make_tl_byte(const char *data, int length, enum ivfru_tlb_type type, char *tl)
 {
-	if(type != IVFRU_TLB_TYPE_11) {
-		printf("Error: Invalid field type!\n");
-		return IVFRU_RET_INVALID_ARGUMENT;
-	}
-
 	if(length > 63) {
 		printf("Error: field length greater than maximum allowed(63)!\n");
 		return IVFRU_RET_INVALID_ARGUMENT;
@@ -46,7 +41,7 @@ static int fru_make_tl_byte(const char *data, int length, enum ivfru_tlb_type ty
 		return IVFRU_RET_INVALID_ARGUMENT;
 	}
 
-	*tl = 0xC0;
+	*tl = type << 6;
 	*tl |= length;
 	return IVFRU_RET_SUCCESS;
 }
@@ -73,11 +68,11 @@ static int fru_tl_get_length(const char *address)
  *
  * Returns IVFRU_RET_SUCCESS on successful execution.
  */
-static int fru_area_format_field(char *address, const char *data, int len, char **next)
+static int fru_area_format_field(char *address, const char *data, int len, enum ivfru_tlb_type type, char **next)
 {
 	char tl;
 
-	if(fru_make_tl_byte(data, len, IVFRU_TLB_TYPE_11, &tl) != IVFRU_RET_SUCCESS)
+	if(fru_make_tl_byte(data, len, type, &tl) != IVFRU_RET_SUCCESS)
 		return IVFRU_RET_INVALID_ARGUMENT;
 
 	if(data == NULL) {
@@ -95,7 +90,7 @@ static int fru_area_format_field(char *address, const char *data, int len, char 
 }
 
 /*
- * fru_area_format_field - Extracts the data at the IPMI field at the given
+ * fru_area_get_field_at_address - Extracts the data at the IPMI field at the given
  * address into the given buffer.
  *
  * The next pointer will be set to the address after the currently formatted
@@ -124,7 +119,7 @@ static int fru_calculate_checksum(char *address, int size, char *checksum)
 {
 	int sum = 0;
 	while(size--) {
-		sum = (sum + *address) % 0xFF;
+		sum = (sum + *address) & 0xFF;
 		address++;
 	}
 
@@ -433,8 +428,8 @@ int ivfru_bia_validate(char *biaaddress, int old_format, enum validation_result 
 		if(!ignore)
 			goto end;
 	}
-	// FRU File ID length should be zero
-	if(fru_tl_get_length(address) != 0) {
+	// FRU File ID byte should be zero
+	if(*address != 0) {
 		res |= VAL_RES_BIA_INVALID_FRU_FILE_ID;
 		if(!ignore)
 			goto end;
@@ -883,7 +878,7 @@ int ivfru_fix(void *location)
  */
 int ivfru_create(void *location, const char *mfgdate, const char *product, const char *sn, const char *pn, const char *mfr)
 {
-	return ivfru_xcreate(location, mfgdate, product, 15, sn, 10, pn, 16, mfr, 10);
+	return ivfru_xcreate(location, mfgdate, product, 16, sn, 10, pn, 15, mfr, 10);
 }
 
 /*
@@ -923,6 +918,16 @@ int ivfru_xcreate(void *location, const char *mfgdate, const char *product, int 
 		pn,
 		"", /* FRU File ID */
 		NULL, /* End marker */
+	};
+
+	// Types
+	enum ivfru_tlb_type field_type[] = {
+		IVFRU_TLB_TYPE_11,
+		IVFRU_TLB_TYPE_11,
+		IVFRU_TLB_TYPE_11,
+		IVFRU_TLB_TYPE_11,
+		IVFRU_TLB_TYPE_UNSPECIFIED,
+		IVFRU_TLB_TYPE_11,
 	};
 
 	// Provided lengths
@@ -991,9 +996,9 @@ int ivfru_xcreate(void *location, const char *mfgdate, const char *product, int 
 			char field[field_len[i]];
 			memset(field, ' ', field_len[i]);
 			memcpy(field, field_str[i], strlen(field_str[i]));
-			ret = fru_area_format_field(address, field, field_len[i], &address);
+			ret = fru_area_format_field(address, field, field_len[i], field_type[i], &address);
 		} else {
-			ret = fru_area_format_field(address, field_str[i], 0, &address);
+			ret = fru_area_format_field(address, field_str[i], field_type[i], 0, &address);
 		}
 		if(ret != IVFRU_RET_SUCCESS) {
 			printf("Error: Failed to add field.\n");
@@ -1055,7 +1060,7 @@ int ivfru_add(void *location, int index, char *data, int len)
 	// Return without modifications on error.
 	const int field_len = len + 1;
 	char field[field_len];
-	if(fru_area_format_field(field, data, len, NULL) != IVFRU_RET_SUCCESS) {
+	if(fru_area_format_field(field, data, len, IVFRU_TLB_TYPE_11, NULL) != IVFRU_RET_SUCCESS) {
 		printf("Error: Failed to add field.\n");
 		return IVFRU_RET_INVALID_ARGUMENT;
 	}
